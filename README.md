@@ -1,5 +1,14 @@
 # GDG Info Dashboard (GDGoC ASU booth terminal)
 
+A terminal-style welcome screen for students visiting the GDGoC booth: info, QR codes to join and follow us, a quiz, and four coding challenges, all in one offline HTML file.
+
+## Demo
+
+![GDG Info Dashboard demo](docs/demo.gif)
+
+*A quick tour: boot screen, the menu, `join` QR code, the quiz, and a Cyber challenge level.*
+You can replay this tour yourself by opening `index.html#demo`.
+
 ## Quick start for the booth team
 1. Unzip, then **double-click `index.html`** (Chrome or Edge recommended). No install, no internet needed.
 2. Click `[ fullscreen ]` at the top right (or press F11).
@@ -11,9 +20,6 @@ Things to know:
 - To change the join link, social links or text, see "Before the event" below.
 
 ---
-
-A terminal-style welcome screen for students visiting the booth. One self-contained
-file, works offline, no install.
 
 ## Run it
 1. Open `index.html` in Chrome or Edge.
