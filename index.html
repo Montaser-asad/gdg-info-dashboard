@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GDGoC ASU Terminal</title>
+<style>
+:root{
+  --bg:#0b0f19; --bar:#111827; --line:#1f2937; --tx:#e8eaed; --mu:#8b93a7;
+  --b:#4285f4; --r:#ea4335; --y:#fbbc04; --g:#34a853; --gl:#5bd987;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);overflow:hidden}
+body{display:flex;flex-direction:column;
+  font-family:'JetBrains Mono','Fira Code',ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace;
+  font-size:clamp(14px,1.25vw,26px);line-height:1.45}
+#bar{display:flex;align-items:center;gap:1.2em;padding:.5em 1em;background:var(--bar);border-bottom:1px solid var(--line);color:var(--mu);white-space:nowrap}
+#bar .dots span{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-right:.45em}
+#bar .grow{flex:1}
+#bar b{color:var(--tx)}
+#bar a{color:var(--b);cursor:pointer;text-decoration:none}
+#out{flex:1;overflow-y:auto;padding:1em 1.4em 0;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.line{white-space:pre-wrap;word-break:break-word;min-height:1.45em}
+pre.title{margin:.3em 0 .2em;font:inherit;font-size:1.7vw;line-height:1.02;letter-spacing:0;overflow:hidden}
+.sh{opacity:.55}
+.cb{color:var(--b)}.cr{color:var(--r)}.cy{color:var(--y)}.cg{color:var(--g)}
+.mu{color:var(--mu)}.tx{color:var(--tx)}.gl{color:var(--gl)}.ye{color:var(--y)}.re{color:var(--r)}.bl{color:var(--b)}
+.cmd{color:var(--y);cursor:pointer;border-bottom:1px dotted transparent}
+.cmd:hover{border-bottom-color:var(--y)}
+.opt{display:block;padding:.15em .6em;margin:.15em 0;border:1px solid var(--line);border-radius:.4em;cursor:pointer;background:#0e1422}
+.opt:hover{border-color:var(--b);background:#111a30}
+.opt b{color:var(--y);margin-right:.6em}
+.box{border:1px solid var(--line);border-radius:.5em;padding:.6em 1em;margin:.4em 0;background:#0e1422}
+.qr{background:#fff;display:inline-block;padding:.5em;border-radius:.4em;line-height:0}
+.qr svg{width:min(22vh,22vw);height:auto;display:block}
+table.sc{border-collapse:collapse;margin:.2em 0 .8em}
+table.sc td{padding:.05em 1.4em .05em 0}
+#quick{display:flex;flex-wrap:wrap;gap:.5em;padding:.5em 1.4em;border-top:1px solid var(--line);background:var(--bar)}
+#quick button{font:inherit;color:var(--tx);background:#0e1422;border:1px solid var(--line);border-radius:.4em;padding:.25em .8em;cursor:pointer}
+#quick button:hover{border-color:var(--y);color:var(--y)}
+#prompt{display:flex;align-items:center;gap:.5em;padding:.6em 1.4em;background:var(--bar);border-top:1px solid var(--line)}
+#prompt .ps{color:var(--gl);white-space:nowrap}
+#prompt .ps i{font-style:normal;color:var(--b)}
+#inp{flex:1;font:inherit;color:var(--tx);background:transparent;border:0;outline:0;caret-color:var(--y);min-width:0}
+.warn{color:var(--y)}
+.line.g{white-space:normal}
+.gtitle{font-size:1.7em;font-weight:700;letter-spacing:.06em;color:var(--gl);margin:.1em 0 .2em}
+.gtitle.re{color:var(--r)}.gtitle.cg{color:var(--g)}.gtitle.cb{color:var(--b)}.gtitle.cy{color:var(--y)}.gtitle.cr{color:var(--r)}
+.scgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:.8em 2.2em;margin-top:.4em}.gtitle.ye{color:var(--y)}
+.btn{display:inline-block;padding:.35em 1.3em;border-radius:.4em;background:var(--g);color:#06210f;font-weight:700;cursor:pointer;margin:.6em .9em .4em 0}
+.btn:hover{filter:brightness(1.15)}
+.hud{display:flex;flex-wrap:wrap;gap:.4em 1.4em;align-items:center}
+.chip{padding:.05em .75em;border-radius:1em;font-weight:700;font-size:.85em;border:1px solid}
+.d-easy{color:var(--g);border-color:var(--g)}.d-med{color:var(--b);border-color:var(--b)}.d-hard{color:var(--y);border-color:var(--y)}
+.d-exp{color:var(--r);border-color:var(--r)}.d-boss{color:#fff;background:var(--r);border-color:var(--r)}
+.prog{display:inline-flex;gap:.25em}.seg{width:1.3em;height:.55em;border-radius:.2em;background:var(--line)}.seg.done{background:var(--g)}.seg.now{background:var(--y)}
+.tbar{height:.6em;background:var(--line);border-radius:.4em;overflow:hidden;margin:.6em 0 .2em}
+.tbar b{display:block;height:100%;width:100%;background:var(--g)}
+.qcard{border:1px solid var(--line);border-radius:.7em;padding:.9em 1.2em;background:#0e1422;margin:.6em 0}
+.qt{color:var(--gl);font-weight:700;font-size:1.15em;margin-bottom:.3em}
+.code{font-size:1.2em;letter-spacing:.05em;color:var(--y);padding:.5em .8em;border-radius:.4em;background:#0a0f1c;border:1px dashed #2a3550;margin:.7em 0;word-break:break-all}
+.res{margin-top:.4em;font-size:1.05em;font-weight:700}
+.ref{white-space:pre-line;font-size:.78em;line-height:1.7;color:var(--mu);border-left:3px solid var(--line);padding:.2em .8em;margin:.4em 0 .7em;word-spacing:.15em}
+.opt b.cg{color:var(--g)}.opt b.cb{color:var(--b)}.opt b.cy{color:var(--y)}.opt b.cr{color:var(--r)}
+.ladder{display:flex;flex-wrap:wrap;gap:.5em;margin:.5em 0}
+#out.sub{font-size:1.15em}
+.qrrow{display:flex;flex-wrap:wrap;gap:2.4em;margin:.6em 0 .4em}
+.qrcol{display:flex;flex-direction:column;gap:.35em;align-items:flex-start}
+pre.aqr.term{background:transparent;color:#fff;padding:.3em 0;border-radius:0}
+pre.aqr{margin:0;padding:.6em;background:#fff;color:#000;border-radius:.4em;font-family:'DejaVu Sans Mono','Cascadia Mono',Consolas,Menlo,monospace;font-size:clamp(9px,2.5vh,20px);line-height:1;letter-spacing:-.1em;white-space:pre;overflow:hidden}
+#boot{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4em;transition:opacity .55s}
+#boot.hide{opacity:0;pointer-events:none}
+#boot .name{font-weight:700;letter-spacing:.08em;color:var(--tx);font-size:1.25em}
+#boot .name span:nth-child(1){color:var(--b)}#boot .name span:nth-child(2){color:var(--r)}#boot .name span:nth-child(3){color:var(--y)}#boot .name span:nth-child(4){color:var(--g)}
+.dots4{display:flex;gap:.75em;height:2.4em;align-items:flex-end}
+.dots4 i{width:1.1em;height:1.1em;border-radius:50%;display:block;animation:bounce 1s ease-in-out infinite}
+.dots4 i:nth-child(1){background:var(--b)}
+.dots4 i:nth-child(2){background:var(--r);animation-delay:.14s}
+.dots4 i:nth-child(3){background:var(--y);animation-delay:.28s}
+.dots4 i:nth-child(4){background:var(--g);animation-delay:.42s}
+@keyframes bounce{0%,55%,100%{transform:translateY(0)}28%{transform:translateY(-1.1em)}}
+#bootbar{width:min(34em,80vw);height:.4em;background:var(--line);border-radius:.4em;overflow:hidden}
+#bootbar b{display:block;height:100%;width:0;border-radius:.4em;background:linear-gradient(90deg,var(--b) 0 25%,var(--r) 25% 50%,var(--y) 50% 75%,var(--g) 75% 100%);transition:width .5s ease-out}
+#bootlog{width:min(34em,80vw);min-height:6.2em;color:var(--mu)}
+#bootlog .ok{color:var(--g)}
+#bootskip{color:var(--mu);font-size:.8em;opacity:.7}
+</style>
+</head>
+<body>
+<div id="boot">
+  <div class="name"><span>G</span><span>D</span><span>G</span><span>o</span><span>C</span>&nbsp;<span style="color:var(--tx)">ASU</span></div>
+  <div class="dots4"><i></i><i></i><i></i><i></i></div>
+  <div id="bootbar"><b></b></div>
+  <div id="bootlog"></div>
+  <div id="bootskip">press any key or tap to skip</div>
+</div>
+<div id="bar">
+  <span class="dots"><span style="background:#ea4335"></span><span style="background:#fbbc04"></span><span style="background:#34a853"></span></span>
+  <b id="barname">GDGoC ASU</b><span id="barpath">~/booth</span>
+  <span class="grow"></span>
+  <span id="clock"></span>
+  <a id="fs" title="Toggle fullscreen">[ fullscreen ]</a>
+</div>
+<div id="out" aria-live="polite"></div>
+<div id="quick"></div>
+<form id="prompt" autocomplete="off">
+  <span class="ps" id="ps"></span>
+  <input id="inp" type="text" maxlength="40" spellcheck="false" autocapitalize="off" autocorrect="off" autofocus>
+</form>
+<noscript>This page needs JavaScript.</noscript>
+
+<script>
+var qrcode=function(){function i(t,r){function a(t,r){g=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(l=4*u+17),e(0,0),e(l-7,0),e(0,l-7),i(),o(),v(t,r),7<=u&&h(t),null==n&&(n=w(u,f,c)),d(n,r)}var u=t,f=y[r],g=null,l=0,n=null,c=[],s={},e=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||l<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||l<=r+n||(g[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},o=function(){for(var t=8;t<l-8;t+=1)null==g[t][6]&&(g[t][6]=t%2==0);for(var r=8;r<l-8;r+=1)null==g[6][r]&&(g[6][r]=r%2==0)},i=function(){for(var t=B.getPatternPosition(u),r=0;r<t.length;r+=1)for(var e=0;e<t.length;e+=1){var n=t[r],o=t[e];if(null==g[n][o])for(var i=-2;i<=2;i+=1)for(var a=-2;a<=2;a+=1)g[n+i][o+a]=-2==i||2==i||-2==a||2==a||0==i&&0==a}},h=function(t){for(var r=B.getBCHTypeNumber(u),e=0;e<18;e+=1){var n=!t&&1==(r>>e&1);g[Math.floor(e/3)][e%3+l-8-3]=n}for(e=0;e<18;e+=1){n=!t&&1==(r>>e&1);g[e%3+l-8-3][Math.floor(e/3)]=n}},v=function(t,r){for(var e=f<<3|r,n=B.getBCHTypeInfo(e),o=0;o<15;o+=1){var i=!t&&1==(n>>o&1);o<6?g[o][8]=i:o<8?g[o+1][8]=i:g[l-15+o][8]=i}for(o=0;o<15;o+=1){i=!t&&1==(n>>o&1);o<8?g[8][l-o-1]=i:o<9?g[8][15-o-1+1]=i:g[8][15-o-1]=i}g[l-8][8]=!t},d=function(t,r){for(var e=-1,n=l-1,o=7,i=0,a=B.getMaskFunction(r),u=l-1;0<u;u-=2)for(6==u&&(u-=1);;){for(var f=0;f<2;f+=1)if(null==g[n][u-f]){var c=!1;i<t.length&&(c=1==(t[i]>>>o&1)),a(n,u-f)&&(c=!c),g[n][u-f]=c,-1==(o-=1)&&(i+=1,o=7)}if((n+=e)<0||l<=n){n-=e,e=-e;break}}},w=function(t,r,e){for(var n=b.getRSBlocks(t,r),o=M(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=C(i[u],l.getLength()-1).mod(l);a[u]=new Array(l.getLength()-1);for(g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=0<=s?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};s.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=x(t);break;case"Alphanumeric":e=m(t);break;case"Byte":e=L(t);break;case"Kanji":e=D(t);break;default:throw"mode:"+r}c.push(e),n=null},s.isDark=function(t,r){if(t<0||l<=t||r<0||l<=r)throw t+","+r;return g[t][r]},s.getModuleCount=function(){return l},s.make=function(){if(u<1){for(var t=1;t<40;t++){for(var r=b.getRSBlocks(t,f),e=M(),n=0;n<c.length;n++){var o=c[n];e.put(o.getMode(),4),e.put(o.getLength(),B.getLengthInBits(o.getMode(),t)),o.write(e)}var i=0;for(n=0;n<r.length;n++)i+=r[n].dataCount;if(e.getLengthInBits()<=8*i)break}u=t}a(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){a(!0,e);var n=B.getLostPoint(s);(0==e||n<t)&&(t=n,r=e)}return r}())},s.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<s.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<s.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=s.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},s.createSvgTag=function(t,r,e,n){var o={};"object"==typeof t&&(t=(o=t).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,f,c=s.getModuleCount()*t+2*r,g="";for(f="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",g+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',g+=o.scalable?"":' width="'+c+'px" height="'+c+'px"',g+=' viewBox="0 0 '+c+" "+c+'" ',g+=' preserveAspectRatio="xMinYMin meet"',g+=n.text||e.text?' role="img" aria-labelledby="'+p([n.id,e.id].join(" ").trim())+'"':"",g+=">",g+=n.text?'<title id="'+p(n.id)+'">'+p(n.text)+"</title>":"",g+=e.text?'<description id="'+p(e.id)+'">'+p(e.text)+"</description>":"",g+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',g+='<path d="',a=0;a<s.getModuleCount();a+=1)for(u=a*t+r,i=0;i<s.getModuleCount();i+=1)s.isDark(a,i)&&(g+="M"+(i*t+r)+","+u+f);return g+='" stroke="transparent" fill="black"/>',g+="</svg>"},s.createDataURL=function(o,t){o=o||2,t=void 0===t?4*o:t;var r=s.getModuleCount()*o+2*t,i=t,a=r-t;return I(r,r,function(t,r){if(i<=t&&t<a&&i<=r&&r<a){var e=Math.floor((t-i)/o),n=Math.floor((r-i)/o);return s.isDark(n,e)?0:1}return 1})},s.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=s.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=s.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=p(e),o+='"'),o+="/>"};var p=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return s.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*s.getModuleCount()+2*t,u=t,f=a-t,c={"██":"█","█ ":"▀"," █":"▄","  ":" "},g={"██":"▀","█ ":"▀"," █":" ","  ":" "},l="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<f&&u<=r&&r<f&&s.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<f&&u<=r+1&&r+1<f&&s.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",l+=t<1&&f<=r+1?g[i]:c[i];l+="\n"}return a%2&&0<t?l.substring(0,l.length-a-1)+Array(1+a).join("▀"):l.substring(0,l.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=s.getModuleCount()*t+2*r,u=r,f=a-r,c=Array(t+1).join("██"),g=Array(t+1).join("  "),l="",h="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),h="",n=0;n<a;n+=1)i=1,u<=n&&n<f&&u<=e&&e<f&&s.isDark(o,Math.floor((n-u)/t))&&(i=0),h+=i?c:g;for(o=0;o<t;o+=1)l+=h+"\n"}return l.substring(0,l.length-1)},s.renderTo2dContext=function(t,r){r=r||2;for(var e=s.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=s.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},s}i.stringToBytes=(i.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,i.createStringToBytes=function(u,f){var i=function(){function t(){var t=r.read();if(-1==t)throw"eof";return t}for(var r=S(u),e=0,n={};;){var o=r.read();if(-1==o)break;var i=t(),a=t()<<8|t();n[String.fromCharCode(o<<8|i)]=a,e+=1}if(e!=f)throw e+" != "+f;return n}(),a="?".charCodeAt(0);return function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);if(n<128)r.push(n);else{var o=i[t.charAt(e)];"number"==typeof o?(255&o)==o?r.push(o):(r.push(o>>>8),r.push(255&o)):r.push(a)}}return r}};var r,t,a=1,u=2,o=4,f=8,y={L:1,M:0,Q:3,H:2},e=0,n=1,c=2,g=3,l=4,h=5,s=6,v=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],(t={}).getBCHTypeInfo=function(t){for(var r=t<<10;0<=d(r)-d(1335);)r^=1335<<d(r)-d(1335);return 21522^(t<<10|r)},t.getBCHTypeNumber=function(t){for(var r=t<<12;0<=d(r)-d(7973);)r^=7973<<d(r)-d(7973);return t<<12|r},t.getPatternPosition=function(t){return r[t-1]},t.getMaskFunction=function(t){switch(t){case e:return function(t,r){return(t+r)%2==0};case n:return function(t,r){return t%2==0};case c:return function(t,r){return r%3==0};case g:return function(t,r){return(t+r)%3==0};case l:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case h:return function(t,r){return t*r%2+t*r%3==0};case s:return function(t,r){return(t*r%2+t*r%3)%2==0};case v:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},t.getErrorCorrectPolynomial=function(t){for(var r=C([1],0),e=0;e<t;e+=1)r=r.multiply(C([1,w.gexp(e)],0));return r},t.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case o:case f:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case o:return 16;case f:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case o:return 16;case f:return 12;default:throw"mode:"+t}}},t.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);5<i&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},t);function d(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r}var w=function(){for(var r=new Array(256),e=new Array(256),t=0;t<8;t+=1)r[t]=1<<t;for(t=8;t<256;t+=1)r[t]=r[t-4]^r[t-5]^r[t-6]^r[t-8];for(t=0;t<255;t+=1)e[r[t]]=t;var n={glog:function(t){if(t<1)throw"glog("+t+")";return e[t]},gexp:function(t){for(;t<0;)t+=255;for(;256<=t;)t-=255;return r[t]}};return n}();function C(n,o){if(void 0===n.length)throw n.length+"/"+o;var r=function(){for(var t=0;t<n.length&&0==n[t];)t+=1;for(var r=new Array(n.length-t+o),e=0;e<n.length-t;e+=1)r[e]=n[e+t];return r}(),i={getAt:function(t){return r[t]},getLength:function(){return r.length},multiply:function(t){for(var r=new Array(i.getLength()+t.getLength()-1),e=0;e<i.getLength();e+=1)for(var n=0;n<t.getLength();n+=1)r[e+n]^=w.gexp(w.glog(i.getAt(e))+w.glog(t.getAt(n)));return C(r,0)},mod:function(t){if(i.getLength()-t.getLength()<0)return i;for(var r=w.glog(i.getAt(0))-w.glog(t.getAt(0)),e=new Array(i.getLength()),n=0;n<i.getLength();n+=1)e[n]=i.getAt(n);for(n=0;n<t.getLength();n+=1)e[n]^=w.gexp(w.glog(t.getAt(n))+r);return C(e,0).mod(t)}};return i}function p(){var e=[],o={writeByte:function(t){e.push(255&t)},writeShort:function(t){o.writeByte(t),o.writeByte(t>>>8)},writeBytes:function(t,r,e){r=r||0,e=e||t.length;for(var n=0;n<e;n+=1)o.writeByte(t[n+r])},writeString:function(t){for(var r=0;r<t.length;r+=1)o.writeByte(t.charCodeAt(r))},toByteArray:function(){return e},toString:function(){var t="";t+="[";for(var r=0;r<e.length;r+=1)0<r&&(t+=","),t+=e[r];return t+="]"}};return o}var k,A,b=(k=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],(A={}).getRSBlocks=function(t,r){var e=function(t,r){switch(r){case y.L:return k[4*(t-1)+0];case y.M:return k[4*(t-1)+1];case y.Q:return k[4*(t-1)+2];case y.H:return k[4*(t-1)+3];default:return}}(t,r);if(void 0===e)throw"bad rs block @ typeNumber:"+t+"/errorCorrectionLevel:"+r;for(var n,o,i=e.length/3,a=[],u=0;u<i;u+=1)for(var f=e[3*u+0],c=e[3*u+1],g=e[3*u+2],l=0;l<f;l+=1)a.push((n=g,o=void 0,(o={}).totalCount=c,o.dataCount=n,o));return a},A),M=function(){var e=[],n=0,o={getBuffer:function(){return e},getAt:function(t){var r=Math.floor(t/8);return 1==(e[r]>>>7-t%8&1)},put:function(t,r){for(var e=0;e<r;e+=1)o.putBit(1==(t>>>r-e-1&1))},getLengthInBits:function(){return n},putBit:function(t){var r=Math.floor(n/8);e.length<=r&&e.push(0),t&&(e[r]|=128>>>n%8),n+=1}};return o},x=function(t){var r=a,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+2<r.length;)t.put(o(r.substring(e,e+3)),10),e+=3;e<r.length&&(r.length-e==1?t.put(o(r.substring(e,e+1)),4):r.length-e==2&&t.put(o(r.substring(e,e+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return e},m=function(t){var r=u,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+1<r.length;)t.put(45*o(r.charAt(e))+o(r.charAt(e+1)),11),e+=2;e<r.length&&t.put(o(r.charAt(e)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return e},L=function(t){var r=o,e=i.stringToBytes(t),n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=0;r<e.length;r+=1)t.put(e[r],8)}};return n},D=function(t){var r=f,e=i.stringToBytesFuncs.SJIS;if(!e)throw"sjis not supported.";!function(){var t=e("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=e(t),n={getMode:function(){return r},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return n},S=function(t){var e=t,n=0,o=0,i=0,r={read:function(){for(;i<8;){if(n>=e.length){if(0==i)return-1;throw"unexpected end of file./"+i}var t=e.charAt(n);if(n+=1,"="==t)return i=0,-1;t.match(/^\s$/)||(o=o<<6|a(t.charCodeAt(0)),i+=6)}var r=o>>>i-8&255;return i-=8,r}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return r},I=function(t,r,e){for(var n=function(t,r){var n=t,o=r,l=new Array(t*r),e={setPixel:function(t,r,e){l[r*n+t]=e},write:function(t){t.writeString("GIF87a"),t.writeShort(n),t.writeShort(o),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(n),t.writeShort(o),t.writeByte(0);var r=i(2);t.writeByte(2);for(var e=0;255<r.length-e;)t.writeByte(255),t.writeBytes(r,e,255),e+=255;t.writeByte(r.length-e),t.writeBytes(r,e,r.length-e),t.writeByte(0),t.writeString(";")}},i=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,o=h(),i=0;i<r;i+=1)o.add(String.fromCharCode(i));o.add(String.fromCharCode(r)),o.add(String.fromCharCode(e));var a=p(),u=function(t){var e=t,n=0,o=0,r={write:function(t,r){if(t>>>r!=0)throw"length over";for(;8<=n+r;)e.writeByte(255&(t<<n|o)),r-=8-n,t>>>=8-n,n=o=0;o|=t<<n,n+=r},flush:function(){0<n&&e.writeByte(o)}};return r}(a);u.write(r,n);var f=0,c=String.fromCharCode(l[f]);for(f+=1;f<l.length;){var g=String.fromCharCode(l[f]);f+=1,o.contains(c+g)?c+=g:(u.write(o.indexOf(c),n),o.size()<4095&&(o.size()==1<<n&&(n+=1),o.add(c+g)),c=g)}return u.write(o.indexOf(c),n),u.write(e,n),u.flush(),a.toByteArray()},h=function(){var r={},e=0,n={add:function(t){if(n.contains(t))throw"dup key:"+t;r[t]=e,e+=1},size:function(){return e},indexOf:function(t){return r[t]},contains:function(t){return void 0!==r[t]}};return n};return e}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=p();n.write(a);for(var u=function(){function e(t){a+=String.fromCharCode(r(63&t))}var n=0,o=0,i=0,a="",t={},r=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return t.writeByte=function(t){for(n=n<<8|255&t,o+=8,i+=1;6<=o;)e(n>>>o-6),o-=6},t.flush=function(){if(0<o&&(e(n<<6-o),o=n=0),i%3!=0)for(var t=3-i%3,r=0;r<t;r+=1)a+="="},t.toString=function(){return a},t}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return i}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||57344<=n?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
+</script>
+<script>
+"use strict";
+/* ============================================================
+   EDIT THIS BLOCK: everything the booth needs to show.
+   Leave a list empty ([]) and that screen shows a friendly
+   "coming soon" message instead of inventing details.
+   ============================================================ */
+const CONFIG = {
+  chapter: "GDGoC ASU",
+  full: "Google Developer Groups on Campus",
+  school: "Applied Science Private University",
+  joinUrl: "https://gdg.community.dev/gdg-on-campus-applied-science-private-university-amman-jordan/",
+  socials: [
+    { name: "Instagram", handle: "@gdgasu", url: "https://www.instagram.com/gdgasu/" },
+    { name: "LinkedIn", handle: "linkedin.com/company/gdgasu", url: "https://www.linkedin.com/company/gdgasu/" },
+  ],
+  qrStyle: "terminal",   // "terminal" = light blocks on the dark screen (like a real terminal); "panel" = black on a white panel
+  idleSeconds: 90,        // go back to the home screen after this much inactivity
+};
+
+/* ---------------- helpers ---------------- */
+const $ = (s) => document.querySelector(s);
+const out = $("#out"), inp = $("#inp"), ps = $("#ps");
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+let mode = "shell";            // shell | quiz | game | name | confirm
+let state = {};
+let busy = false;              // ignore input while auto-advancing
+let onHome = true;             // true while the home screen is showing
+let lastActivity = Date.now();
+let runToken = 0;              // cancels stale async flows when we go home
+
+function print(html, cls) {
+  const d = document.createElement("div");
+  d.className = "line" + (cls ? " " + cls : "");
+  d.innerHTML = html;
+  out.appendChild(d);
+  out.scrollTop = out.scrollHeight;
+  return d;
+}
+function cmdLink(cmd, label) { return `<span class="cmd" data-cmd="${esc(cmd)}">${label || esc(cmd)}</span>`; }
+function setPrompt() {
+  const label = { shell: "$", quiz: "answer", game: "answer", name: "name", confirm: "yes/no" }[mode] || "$";
+  ps.innerHTML = `guest@gdgoc-asu<i>:~</i>${label === "$" ? "$" : "/" + label + "&gt;"}`;
+}
+function setPath(p) { $("#barpath").textContent = "~/booth" + (p ? "/" + p : ""); }
+function setMode(m) { mode = m; setPrompt(); renderQuick(); }
+function renderQuick() {
+  out.classList.toggle("sub", mode !== "shell" || !onHome);
+  const q = $("#quick");
+  if (mode !== "shell") { q.innerHTML = `<button data-cmd="home">⌂ home</button>`; return; }
+  q.innerHTML = (onHome ? [] : ["home"]).concat(["about", "join", "socials", "quiz", "game", "scores"])
+    .map((c) => `<button data-cmd="${c}">${c === "home" ? "⌂ home" : c}</button>`).join("");
+}
+function isPlaceholder(u) { return !u || /example\.(com|org)/i.test(u); }
+
+/* ---------------- big title ---------------- */
+const GL = {"G": [" ██████╗ ", "██╔════╝ ", "██║  ███╗", "██║   ██║", "╚██████╔╝", " ╚═════╝ "], "D": ["██████╗ ", "██╔══██╗", "██║  ██║", "██║  ██║", "██████╔╝", "╚═════╝ "], "o": ["         ", "         ", " ██████╗ ", "██╔═══██╗", "╚██████╔╝", " ╚═════╝ "], "C": [" ██████╗", "██╔════╝", "██║     ", "██║     ", "╚██████╗", " ╚═════╝"], "A": [" █████╗ ", "██╔══██╗", "███████║", "██╔══██║", "██║  ██║", "╚═╝  ╚═╝"], "S": ["███████╗", "██╔════╝", "███████╗", "╚════██║", "███████║", "╚══════╝"], "U": ["██╗   ██╗", "██║   ██║", "██║   ██║", "██║   ██║", "╚██████╔╝", " ╚═════╝ "]};
+function bigTitle() {
+  const word = [["G","cb"],["D","cr"],["G","cy"],["o","cg"],["C","cb"],[" ",""],["A","cr"],["S","cy"],["U","cg"]];
+  const rows = ["", "", "", "", "", ""];
+  word.forEach(([ch, cls], idx) => {
+    for (let r = 0; r < 6; r++) {
+      if (ch === " ") { rows[r] += "   "; continue; }
+      let html = "", run = "", kind = "";
+      for (const c of GL[ch][r]) {
+        const k = c === "█" ? "m" : c === " " ? "s" : "d";            // m = solid, d = shadow edge, s = space
+        if (k !== kind) { if (run) html += kind === "s" ? run : `<span class="${kind === "d" ? cls + " sh" : cls}">${run}</span>`; run = ""; kind = k; }
+        run += c;
+      }
+      if (run) html += kind === "s" ? run : `<span class="${kind === "d" ? cls + " sh" : cls}">${run}</span>`;
+      rows[r] += html + (idx < word.length - 1 ? " " : "");
+    }
+  });
+  return `<pre class="title">${rows.join("\n")}</pre>`;
+}
+
+/* ---------------- screens ---------------- */
+async function home(animate) {
+  const my = ++runToken;
+  clearRoundTimer();
+  out.innerHTML = "";
+  state = {};
+  onHome = true; setPath("");
+  setMode("shell");
+  print(bigTitle());
+  print(`<span class="mu">${esc(CONFIG.full)}  ·  ${esc(CONFIG.school)}</span>`);
+  print("");
+  if (animate) {
+    const d = print("");
+    const msg = "Welcome, student! Type a command or tap a button below.";
+    for (let i = 1; i <= msg.length; i++) { if (my !== runToken) return; d.innerHTML = `<span class="gl">${esc(msg.slice(0, i))}</span>`; await sleep(14); }
+  } else print(`<span class="gl">Welcome, student! Type a command or tap a button below.</span>`);
+  print("");
+  const menu = [
+    ["1", "about", "what is GDGoC?"],
+    ["2", "join", "scan the QR to join us"],
+    ["3", "socials", "find us online (QR codes)"],
+    ["4", "quiz", "8 questions: tech + cyber"],
+    ["5", "game", "4 challenges: cyber, software, AI"],
+    ["6", "scores", "leaderboards"],
+  ];
+  menu.forEach(([n, c, d]) => print(`  <span class="ye">[${n}]</span> ${cmdLink(c, c.padEnd(9))} <span class="mu">${esc(d)}</span>`));
+  print("");
+  print(`<span class="mu">Tip: type <span class="tx">help</span> any time to see every command.</span>`);
+  [...out.children].forEach((e) => e.classList.add("keep"));   // the home block survives `clear`
+}
+
+function help() {
+  print(`<span class="gl">Commands</span>`);
+  [["about", "what GDGoC is"], ["join", "QR code to join"], ["socials", "our social links as QR codes"], ["quiz", "tech + cyber quiz"],
+   ["game", "pick a challenge: cyber, software, AI, mixed"], ["scores", "leaderboards"], ["home", "back to the start"], ["clear", "clean the screen"],
+   ["fullscreen", "toggle fullscreen"]].forEach(([c, d]) => print(`  ${cmdLink(c, c.padEnd(11))}<span class="mu">${d}</span>`));
+}
+
+function about() {
+  print(`<span class="gl">About ${esc(CONFIG.chapter)}</span>`);
+  print(`<div class="box"><span class="tx">${esc(CONFIG.full)} (GDGoC) is a student-led community for people who want to learn and build with technology.
+Think workshops, study jams, talks and projects, run by students at ${esc(CONFIG.school)}.
+
+Curious about coding, cloud, AI, design or security? Ask the team at the booth, we'll point you somewhere to start.</span></div>`);
+  if (CONFIG.socials.length) {
+    print(`<span class="gl">Find us</span>`);
+    CONFIG.socials.forEach((s) => print(`  <span class="ye">${esc(s.name)}</span>  <span class="tx">${esc(s.handle)}</span>`));
+    print(`<span class="mu">Type </span>${cmdLink("socials")}<span class="mu"> for QR codes you can scan.</span>`);
+  }
+}
+
+function join() {
+  print(`<span class="gl">Join ${esc(CONFIG.chapter)}</span>`);
+  if (isPlaceholder(CONFIG.joinUrl)) {
+    print(`<div class="box"><span class="warn">⚠ Organizer: set <b>joinUrl</b> in the CONFIG block of index.html to show the QR code here.</span>\n<span class="mu">For now, just ask the team at the booth!</span></div>`);
+    return;
+  }
+  let lines = [];
+  try { lines = asciiQr(CONFIG.joinUrl); } catch (e) { lines = []; }
+  print(`<div class="box"><span class="tx">Scan with your phone camera:</span>\n<pre class="aqr ${CONFIG.qrStyle === "panel" ? "" : "term"}" style="display:inline-block;margin:.5em 0;font-size:clamp(8px,1.9vh,17px)">${lines.join("\n")}</pre>\n<span class="mu">${esc(CONFIG.joinUrl)}</span></div>`);
+}
+
+/* ---------------- ascii-style QR codes ---------------- */
+function qrMatrix(url) {
+  const q = qrcode(0, "M"); q.addData(url); q.make();
+  const n = q.getModuleCount(), m = 2, N = n + 2 * m;
+  return { N, dark: (r, c) => r >= m && c >= m && r < n + m && c < n + m && q.isDark(r - m, c - m) };
+}
+function asciiQr(url) {                      // two QR rows per text line, using half-block characters
+  const { N, dark } = qrMatrix(url), lines = [];
+  for (let r = 0; r < N; r += 2) {
+    let line = "";
+    for (let c = 0; c < N; c++) { const t = dark(r, c), b = dark(r + 1, c); line += t && b ? "█" : t ? "▀" : b ? "▄" : " "; }
+    lines.push(line);
+  }
+  return lines;
+}
+function socials() {
+  print(`<span class="gl">Find us online</span> <span class="mu">scan with your phone camera</span>`);
+  const items = CONFIG.socials.filter((x) => x.url);
+  if (!items.length) { print(`<div class="box"><span class="mu">No social links set yet.</span></div>`); return; }
+  const row = document.createElement("div"); row.className = "qrrow";
+  items.forEach((x) => {
+    const col = document.createElement("div"); col.className = "qrcol";
+    col.innerHTML = `<div class="ye">${esc(x.name)}</div><pre class="aqr ${CONFIG.qrStyle === "panel" ? "" : "term"}">${asciiQr(x.url).join("\n")}</pre><div class="mu">${esc(x.handle)}</div>`;
+    row.appendChild(col);
+  });
+  out.appendChild(row);
+}
+
+/* ---------------- scores ---------------- */
+const KEY = "gdgoc_asu_scores_v1";
+function loadScores() { try { return JSON.parse(localStorage.getItem(KEY)) || { quiz: [], game: [] }; } catch (e) { return { quiz: [], game: [] }; } }
+function saveScore(board, name, score) {
+  const s = loadScores(); (s[board] = s[board] || []).push({ name, score, t: Date.now() });
+  s[board].sort((a, b) => b.score - a.score || a.t - b.t); s[board] = s[board].slice(0, 10);
+  try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+  return s[board].findIndex((x) => x.name === name && x.score === score) + 1;
+}
+function scores() {
+  const s = loadScores(), medal = ["ye", "tx", "re"];
+  const boards = [["quiz", "Quiz", 80], ["game", "Cyber", GAME_MAX], ["game_sw", "Software", GAME_MAX], ["game_ai", "AI", GAME_MAX], ["game_mix", "Mixed", GAME_MAX]];
+  const grid = document.createElement("div"); grid.className = "scgrid";
+  boards.forEach(([k, label, max]) => {
+    const rows = (s[k] || []).slice(0, 5);
+    grid.innerHTML += `<div><div class="gl">${label} top 5 <span class="mu">(of ${max})</span></div>${rows.length ? `<table class="sc">${rows.map((r, i) => `<tr class="${medal[i] || "tx"}"><td>#${i + 1}</td><td>${esc(r.name)}</td><td>${r.score}</td></tr>`).join("")}</table>` : `<div class="mu">No scores yet.</div>`}</div>`;
+  });
+  out.appendChild(grid);
+}
+
+/* ---------------- quiz ---------------- */
+const Q = (q, o, a, w) => ({ q, o, a, w });          // o = options, a = index of the correct one, w = why
+const QUIZ = [
+  /* --- Google and GDG --- */
+  Q("What does GDGoC stand for?", ["Google Developer Groups on Campus", "Global Data Group of Computing", "Git Developer Guild of Coders", "Google Design & Games Club"], 0, "Google Developer Groups on Campus: student communities for learning tech."),
+  Q("Which language does Google recommend for new Android apps?", ["Perl", "Kotlin", "Ruby", "COBOL"], 1, "Kotlin is Google's preferred language for Android development."),
+  Q("Flutter apps are written in which language?", ["Dart", "Swift", "PHP", "Lua"], 0, "Flutter is Google's UI toolkit and it uses Dart."),
+  Q("Which Google tool gives you a free cloud notebook for Python and machine learning?", ["Google Colab", "Google Forms", "Google Maps", "Google Keep"], 0, "Colab runs Jupyter-style notebooks in the cloud, with limited free GPU time."),
+  Q("Gemini is...", ["A family of Google AI models", "A Google keyboard", "A type of Wi-Fi router", "A programming language"], 0, "Gemini is Google's family of AI models."),
+  Q("Firebase is mainly used to...", ["Give apps a ready-made backend (database, login, hosting)", "Print documents", "Edit photos", "Monitor room temperature"], 0, "Firebase provides backend services like auth, databases and hosting."),
+  Q("Chrome is built on which open-source project?", ["Chromium", "Linux Mint", "Firefox", "Apache"], 0, "Chrome is built on Chromium, which many other browsers also use."),
+  Q("TensorFlow, a popular machine learning library, was created by...", ["Google", "Oracle", "Adobe", "Intel"], 0, "TensorFlow came out of the Google Brain team and was open-sourced in 2015."),
+  Q("Which programming language did Google introduce in 2009?", ["Go", "Java", "C#", "Python"], 0, "Go (also called Golang) was released by Google in 2009."),
+  /* --- Cybersecurity --- */
+  Q("What is 'phishing'?", ["Tricking people with fake messages to steal info", "A type of antivirus", "Fixing broken Wi-Fi", "Compressing files"], 0, "Phishing uses fake emails, links or pages to steal passwords and data."),
+  Q("What does 2FA stand for?", ["Two-File Archive", "Two-Factor Authentication", "Twice-Fast Access", "Tech For All"], 1, "Two-Factor Authentication adds a second proof, like a code on your phone."),
+  Q("Which is the best password habit?", ["Reuse one password everywhere", "Use your birthday", "Unique passwords from a password manager", "Write it on the monitor"], 2, "A unique password per account, stored in a password manager."),
+  Q("SQL injection works by abusing...", ["Untrusted input placed into a database query", "A broken keyboard", "Slow internet", "Old monitors"], 0, "Unsanitised input becomes part of the query. Use parameterised queries."),
+  Q("What does a firewall do?", ["Filters network traffic using rules", "Cools the CPU", "Speeds up downloads", "Backs up photos"], 0, "A firewall allows or blocks network traffic based on rules."),
+  Q("What is malware?", ["Software designed to cause harm", "A fast web browser", "A coding bootcamp", "A type of keyboard"], 0, "Malware is malicious software: viruses, trojans, spyware and more."),
+  Q("What does a VPN mainly do?", ["Encrypts your traffic through a secure tunnel", "Makes your Wi-Fi faster", "Removes all viruses", "Deletes your browser history"], 0, "A VPN encrypts traffic between you and the VPN server."),
+  Q("What does ransomware do?", ["Encrypts your files and demands payment", "Speeds up your PC", "Blocks pop-up ads", "Updates your drivers"], 0, "Ransomware locks your files until a ransom is paid. Backups are the best defence."),
+  Q("What does XSS stand for?", ["Cross-Site Scripting", "eXtra Secure System", "XML Style Sheet", "Cross-Server Storage"], 0, "XSS lets attackers inject scripts into pages other people view."),
+  Q("What is a 'zero-day' vulnerability?", ["A flaw the vendor doesn't know about yet, so there's no patch", "A bug that only lasts one day", "A virus that deletes everything on day zero", "A free trial of antivirus"], 0, "Zero-day means defenders have had zero days to fix it."),
+  Q("Which of these is a hash function?", ["SHA-256", "AES", "RSA", "Caesar cipher"], 0, "SHA-256 is a hash function. AES and RSA encrypt, Caesar is an old cipher."),
+  Q("Which kind of encryption uses the same key to lock and unlock data?", ["Symmetric", "Asymmetric", "Quantum", "Optical"], 0, "Symmetric encryption (like AES) uses one shared key."),
+  Q("What is social engineering?", ["Manipulating people into giving up access or info", "Building social media apps", "A type of network cable", "Designing user interfaces"], 0, "Attackers target people, not machines: phone calls, fake support, tailgating."),
+  Q("The padlock in your browser's address bar tells you...", ["The connection is encrypted", "The site is 100% safe", "The site is owned by Google", "You are using a VPN"], 0, "It means the connection is encrypted. Scam sites can have it too."),
+  Q("What is a DDoS attack?", ["Flooding a service with traffic from many sources", "Stealing a password", "Guessing a PIN", "Installing a keylogger"], 0, "Distributed Denial of Service: so much traffic that real users can't get in."),
+  Q("What does CTF stand for in cybersecurity competitions?", ["Capture The Flag", "Code The Future", "Cyber Test Format", "Control The Firewall"], 0, "In a CTF you solve security challenges to find hidden flags."),
+  Q("Which port does HTTPS use by default?", ["443", "21", "25", "8080"], 0, "HTTPS uses port 443. HTTP uses port 80."),
+  Q("Which tool is commonly used to scan a network for open ports?", ["Nmap", "Photoshop", "Excel", "Spotify"], 0, "Nmap maps hosts and open ports. Only scan networks you have permission to test."),
+  Q("The 'principle of least privilege' means...", ["Give users only the access they need", "Give everyone admin rights", "Never use passwords", "Delete old accounts every day"], 0, "Less access means less damage if an account is compromised."),
+  Q("What is a brute-force attack?", ["Trying many combinations until one works", "Physically breaking a server", "Sending a fake email", "Reading network cables"], 0, "Long, unique passwords make brute force impractical."),
+  Q("What is a man-in-the-middle attack?", ["Secretly intercepting communication between two parties", "Hiding malware in a game", "Crashing a website", "Guessing security answers"], 0, "The attacker sits between you and the site and reads or changes the traffic."),
+  Q("Why should you keep your software updated?", ["Updates patch security holes", "To make icons look new", "To use more storage", "Updates are only for games"], 0, "Many attacks use known bugs that updates already fix."),
+  Q("Which second factor is generally stronger than SMS codes?", ["A security key or authenticator app", "A code sent by SMS", "Your birthday", "Your username"], 0, "SMS codes can be intercepted or SIM-swapped. Apps and keys are harder to attack."),
+  Q("What is 'prompt injection'?", ["Hiding instructions in input to trick an AI", "Giving an AI more memory", "Training a model faster", "A type of CPU cooling"], 0, "Prompt injection tricks AI systems into following an attacker's instructions."),
+  /* --- Coding basics --- */
+  Q("In Git, which command saves your staged changes to history?", ["git push", "git clone", "git status", "git commit"], 3, "git commit records your staged changes in the project history."),
+  Q("In Git, which command copies a repository to your computer?", ["git clone", "git merge", "git stash", "git blame"], 0, "git clone downloads a full copy of a repository."),
+  Q("What does HTML stand for?", ["HyperText Markup Language", "High Tech Machine Learning", "Home Tool Markup Language", "Hyperlink Text Mode Language"], 0, "HTML describes the structure of a web page."),
+  Q("Which language makes web pages interactive in the browser?", ["JavaScript", "SQL", "Bash", "Assembly"], 0, "JavaScript runs in the browser and handles interactivity."),
+  Q("What does CSS control?", ["How a page looks: colours, fonts, layout", "The database", "Server passwords", "Network speed"], 0, "CSS handles the style and layout of web pages."),
+  Q("What does API stand for?", ["Application Programming Interface", "Automated Program Installer", "Advanced Page Index", "Applied Python Integration"], 0, "An API lets programs talk to each other."),
+  Q("Which data structure works first-in, first-out?", ["Queue", "Stack", "Tree", "Graph"], 0, "A queue serves items in the order they arrived, like a line at a shop."),
+  Q("What is the time complexity of binary search?", ["O(log n)", "O(n)", "O(n squared)", "O(1)"], 0, "Binary search halves the search space each step, so O(log n)."),
+  Q("What does DNS do?", ["Turns domain names into IP addresses", "Encrypts emails", "Stores your passwords", "Blocks ads"], 0, "DNS is the internet's phone book for names and addresses."),
+  Q("What is the decimal number 5 in binary?", ["101", "110", "011", "111"], 0, "5 = 4 + 1, which is 101 in binary."),
+  Q("What does IDE stand for?", ["Integrated Development Environment", "Internet Data Exchange", "Internal Debug Engine", "Interactive Design Editor"], 0, "An IDE bundles an editor, debugger and tools, like VS Code or Android Studio."),
+  Q("In JavaScript, what does === check?", ["Equal value and equal type", "Only equal value", "Only equal type", "Assigns a value"], 0, "=== is strict equality: no type conversion."),
+  Q("What does HTTP status 404 mean?", ["Not found", "Server error", "Success", "Forbidden"], 0, "404 means the server can't find what you asked for."),
+  Q("What does 'open source' mean?", ["The source code is public for others to use and change", "The app is free of bugs", "The app only runs on Linux", "The code is hidden"], 0, "Open-source code is publicly available under a licence."),
+  Q("What is 'Big O' notation used for?", ["How an algorithm's cost grows with input size", "Naming variables", "Formatting code", "Counting lines of code"], 0, "Big O describes how time or memory grows as the input gets bigger."),
+  Q("What does LLM stand for?", ["Large Language Model", "Low-Level Machine", "Logic Learning Module", "Linked List Manager"], 0, "LLMs are AI models trained on huge amounts of text."),
+  Q("Which of these is a database?", ["PostgreSQL", "Notepad", "VLC", "Zoom"], 0, "PostgreSQL is a popular open-source relational database."),
+];
+const QUIZ_N = 8, SEEN_KEY = "gdgoc_asu_seen_q_v1";
+function pickQuiz() {
+  let seen = []; try { seen = JSON.parse(localStorage.getItem(SEEN_KEY)) || []; } catch (e) {}
+  let fresh = QUIZ.map((_, i) => i).filter((i) => !seen.includes(i));
+  if (fresh.length < QUIZ_N) { seen = []; fresh = QUIZ.map((_, i) => i); }      // everything used: start a new cycle
+  const chosen = shuffle(fresh).slice(0, QUIZ_N);
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen.concat(chosen))); } catch (e) {}
+  return chosen.map((i) => {                  // shuffle the answer order too
+    const it = QUIZ[i], correct = it.o[it.a], o = shuffle(it.o);
+    return { q: it.q, o, a: o.indexOf(correct), w: it.w };
+  });
+}
+function startQuiz() {
+  state.quiz = { list: pickQuiz(), i: 0, score: 0 };
+  setMode("quiz"); setPath("quiz"); out.innerHTML = "";
+  print(`<span class="gl">GDGoC Quiz</span> <span class="mu">${QUIZ_N} questions, 10 points each. Type a, b, c or d (or tap an answer). Type quit to leave.</span>`);
+  print(""); askQuiz();
+}
+function askQuiz() {
+  const z = state.quiz, item = z.list[z.i], L = ["a", "b", "c", "d"];
+  print(`<span class="ye">Q${z.i + 1}/${z.list.length}</span>  <span class="tx">${esc(item.q)}</span>`);
+  item.o.forEach((t, k) => print(`<span class="opt" data-ans="${L[k]}"><b>${L[k]})</b>${esc(t)}</span>`));
+  busy = false;
+}
+async function answerQuiz(txt) {
+  const z = state.quiz, item = z.list[z.i], L = ["a", "b", "c", "d"];
+  let k = L.indexOf(txt); if (k < 0 && /^[1-4]$/.test(txt)) k = Number(txt) - 1;
+  if (k < 0) { print(`<span class="warn">Type a, b, c or d.</span>`); return; }
+  busy = true; const my = runToken;
+  if (k === item.a) { z.score += 10; print(`<span class="gl">✓ Correct!</span> <span class="mu">${esc(item.w)}</span>`); }
+  else print(`<span class="re">✗ Not quite.</span> <span class="tx">Answer: ${L[item.a]}) ${esc(item.o[item.a])}</span> <span class="mu">${esc(item.w)}</span>`);
+  print(""); await sleep(1400); if (my !== runToken) return;
+  z.i++;
+  if (z.i < z.list.length) askQuiz(); else finish("quiz", z.score, z.list.length * 10);
+}
+
+/* ---------------- cyber challenge: 8 levels, getting harder ---------------- */
+const GAME_MAX = 200, LIVES = 3, ALL_CLEAR_BONUS = 15;
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const norm = (t) => String(t).toLowerCase().replace(/\s+/g, "");
+const caesar = (w, k) => w.replace(/[a-z]/g, (c) => String.fromCharCode((c.charCodeAt(0) - 97 + k + 26) % 26 + 97));
+const toBin = (w) => [...w].map((c) => c.charCodeAt(0).toString(2).padStart(8, "0")).join(" ");
+const toHex = (w) => [...w].map((c) => c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")).join(" ");
+const WORDS = ["cyber", "firewall", "password", "network", "encrypt", "malware", "packet", "router"];
+const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const REF_BIN = "Binary alphabet (each letter is +1 from the one before):\n" + [...ALPHA].map((c) => `${c}=${toBin(c)}`).join("  ");
+const REF_HEX = "ASCII in hex:\n" + [...ALPHA].map((c) => `${c}=${c.charCodeAt(0).toString(16).toUpperCase()}`).join("  ");
+const REF_ALPHA = "Alphabet:\nA B C D E F G H I J K L M N O P Q R S T U V W X Y Z\n(1 2 3 4 5 6 7 8 9 10 ... 26)";
+const REF_ROT = "ROT13 swaps each letter with its partner in the other row:\nA B C D E F G H I J K L M\nN O P Q R S T U V W X Y Z";
+const PORTS = [
+  { svc: "SSH (secure remote login)", port: "22" }, { svc: "HTTPS (secure websites)", port: "443" },
+  { svc: "HTTP (normal websites)", port: "80" }, { svc: "DNS (domain name lookups)", port: "53" },
+];
+function buildCyber() {
+  const phish = pick([
+    { real: ["https://accounts.google.com", "https://myaccount.google.com"], fake: "https://accounts.g00gle-login.com" },
+    { real: ["https://github.com/login", "https://docs.github.com"], fake: "https://github.com.secure-login.io/login" },
+    { real: ["https://www.instagram.com", "https://help.instagram.com"], fake: "https://instagrarn.com/verify" },
+  ]);
+  const po = shuffle([...phish.real, phish.fake]);
+  const pw = shuffle(["password123", "Asu2024!", "correct-horse-battery-staple-9!", "12345678"]);
+  const sq = shuffle(["SQL injection", "Cross-site scripting (XSS)", "Buffer overflow", "Phishing"]);
+  const wb = pick(["GDG", "ASU", "BUG", "KEY", "SQL", "LOG"]);
+  const wc = pick(WORDS), k = pick([2, 3, 4, 5, 7]);
+  const wh = pick(["HACK", "ROOT", "LOCK", "BYTE", "GDGOC"]);
+  const w64 = pick(["Secure", "Hacker", "Cipher", "Packet", "GDGoC"]);
+  const wr = pick(WORDS);
+  const pt = pick(PORTS), po6 = shuffle(["22", "80", "443", "53"]);
+  return [
+    { lvl: 1, t: "Spot the phish", d: "One of these links is fake. Which one?", type: "choice", o: po, a: [String(po.indexOf(phish.fake) + 1)], show: phish.fake, hint: "Read the domain slowly. What comes right before the first slash?", pts: 10, limit: 45 },
+    { lvl: 2, t: "Binary", d: "Turn this binary into letters. Use the table below:", c: toBin(wb), ref: REF_BIN, type: "text", a: [norm(wb)], show: wb, hint: "Match each 8-digit group to a letter in the table.", pts: 10, limit: 90 },
+    { lvl: 3, t: "Caesar cipher", d: `Every letter was shifted forward by ${k}. Decode it (count backwards ${k} in the alphabet):`, c: caesar(wc, k).toUpperCase(), ref: REF_ALPHA, type: "text", a: [norm(wc)], show: wc.toUpperCase(), hint: `Move each letter back by ${k}: for example, with a shift of 1, B becomes A.`, pts: 15, limit: 90 },
+    { lvl: 4, t: "Strongest password", d: "Which password is the hardest to crack?", type: "choice", o: pw, a: [String(pw.indexOf("correct-horse-battery-staple-9!") + 1)], show: "correct-horse-battery-staple-9!", hint: "Length beats cleverness.", pts: 15, limit: 45 },
+    { lvl: 5, t: "Hex to text", d: "These are ASCII codes in hex. Use the table below to find the word:", c: toHex(wh), ref: REF_HEX, type: "text", a: [norm(wh)], show: wh, hint: "Look each two-digit code up in the table.", pts: 20, limit: 120 },
+    { lvl: 6, t: "Common ports", d: `Which port number does ${pt.svc} use by default?`, type: "choice", o: po6, a: [String(po6.indexOf(pt.port) + 1)], show: pt.port, hint: "HTTP is 80 and HTTPS is 443. SSH is the low number, DNS is in the 50s.", pts: 20, limit: 90 },
+    { lvl: 7, t: "ROT13", d: "ROT13 swaps every letter with its partner in the other row. Decode it:", c: caesar(wr, 13).toUpperCase(), ref: REF_ROT, type: "text", a: [norm(wr)], show: wr.toUpperCase(), hint: "Find the letter in one row and take the one directly in the other row.", pts: 25, limit: 100 },
+    { lvl: 8, t: "Boss level: find the flaw", d: "A login form builds this query from user input. What attack does it allow?", c: `query = "SELECT * FROM users WHERE name='" + input + "'"`, type: "choice", o: sq, a: [String(sq.indexOf("SQL injection") + 1)], show: "SQL injection", hint: "What if the input is: ' OR '1'='1", pts: 30, limit: 75 },
+  ];
+}
+
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const PTS = [10, 10, 15, 15, 20, 20, 25, 30];
+const L = (lvl, o) => Object.assign({ lvl, pts: PTS[lvl - 1], type: "text" }, o);
+function buildSoftware() {
+  const LIM = [45, 60, 75, 75, 90, 120, 150, 180];
+  const w = pick(["GDGoC", "Python", "Kotlin", "Flutter", "Android", "Gemini"]);
+  const n2 = rnd(5, 15), n3 = rnd(3, 9), a4 = pick([17, 23, 29, 34, 41, 50, 53]), b4 = pick([3, 4, 5, 6, 7]);
+  const bv = pick([
+    { c: "for i in range(n):\n    work()", ans: "O(n)" },
+    { c: "for i in range(n):\n    for j in range(n):\n        work()", ans: "O(n²)" },
+    { c: "while n > 1:\n    n = n // 2\n    work()", ans: "O(log n)" },
+  ]);
+  const bo = shuffle(["O(n)", "O(n²)", "O(log n)", "O(1)"]);
+  const n6 = pick([3, 5, 6, 9, 10, 15, 20, 25, 30, 45]);
+  const fb = n6 % 15 === 0 ? "FizzBuzz" : n6 % 3 === 0 ? "Fizz" : n6 % 5 === 0 ? "Buzz" : String(n6);
+  const arr = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, 4), pops = rnd(2, 3);
+  const fibv = Math.random() < 0.5, N8 = fibv ? rnd(5, 8) : rnd(4, 6);
+  const f8 = fibv ? (function f(n) { return n < 2 ? 1 : f(n - 1) + f(n - 2); })(N8) : (function f(n) { return n <= 1 ? 1 : n * f(n - 1); })(N8);
+  const R = [
+    L(1, { t: "What does it print?", d: "What number does this code print?", c: `print(len("${w}"))`, a: [String(w.length)], show: String(w.length), hint: "Count the letters between the quotes.", m: { k: "len", w } }),
+    L(2, { t: "Binary to decimal", d: "Convert this binary number to decimal:", c: n2.toString(2), a: [String(n2)], show: String(n2), hint: "From the right, the place values are 1, 2, 4, 8.", m: { k: "bin", bin: n2.toString(2) } }),
+    L(3, { t: "Loop", d: "What is the LAST number this code prints?", c: `for i in range(${n3}):\n    print(i)`, a: [String(n3 - 1)], show: String(n3 - 1), hint: "range(n) counts from 0 up to n-1.", m: { k: "range", n: n3 } }),
+    L(4, { t: "Remainder", d: "The % operator gives the remainder of a division. What does this print?", c: `print(${a4} % ${b4})`, a: [String(a4 % b4)], show: String(a4 % b4), hint: `How many times does ${b4} fit into ${a4}? What is left over?`, m: { k: "mod", a: a4, b: b4 } }),
+    L(5, { t: "Big-O", d: "How does the running time of this code grow as n gets bigger?", c: bv.c, type: "choice", o: bo, a: [String(bo.indexOf(bv.ans) + 1)], show: bv.ans, hint: "Count how many times work() runs when n doubles." }),
+    L(6, { t: "FizzBuzz", d: "What does this print?", c: `def f(n):\n    if n % 15 == 0: return "FizzBuzz"\n    if n % 3 == 0: return "Fizz"\n    if n % 5 == 0: return "Buzz"\n    return n\nprint(f(${n6}))`, a: [norm(fb)], show: fb, hint: "The 15 rule is checked first.", m: { k: "fb", n: n6 } }),
+    L(7, { t: "The stack", d: "What does the last line print?", c: `s = []\n${arr.map((x) => `s.append(${x})`).join("\n")}\n${"s.pop()\n".repeat(pops)}print(s[-1])`, a: [String(arr[3 - pops])], show: String(arr[3 - pops]), hint: "A stack is last-in, first-out. pop() removes the newest item.", m: { k: "stack", arr, pops } }),
+    L(8, { t: "Boss level: recursion", d: "What does this print?", c: fibv ? `def f(n):\n    return 1 if n < 2 else f(n-1) + f(n-2)\nprint(f(${N8}))` : `def f(n):\n    return 1 if n <= 1 else n * f(n-1)\nprint(f(${N8}))`, a: [String(f8)], show: String(f8), hint: fibv ? "f(0)=1, f(1)=1, then each value is the sum of the two before it." : "f(1)=1, f(2)=2, f(3)=6, f(4)=24...", m: { k: fibv ? "fib" : "fact", N: N8 } }),
+  ];
+  return R.map((r, i) => Object.assign(r, { limit: LIM[i] }));
+}
+function buildAI() {
+  const LIM = [45, 45, 90, 75, 75, 75, 150, 180];
+  const geo = Math.random() < 0.5; let terms, next, shint;
+  if (geo) { const s0 = pick([2, 3]), q = pick([2, 3]); terms = [0, 1, 2, 3].map((k) => s0 * q ** k); next = s0 * q ** 4; shint = "Each number is the previous one multiplied by the same amount."; }
+  else { const s0 = rnd(2, 9), d = rnd(2, 6); terms = [0, 1, 2, 3].map((k) => s0 + d * k); next = s0 + 4 * d; shint = "Look at the difference between neighbouring numbers."; }
+  const sc = pick([
+    { q: "Predicting the price of a house from its size is an example of...", a: "Regression" },
+    { q: "Sorting emails into spam or not spam is an example of...", a: "Classification" },
+    { q: "Grouping customers by similar behaviour, with no labels given, is an example of...", a: "Clustering" },
+  ]);
+  const so = shuffle(["Regression", "Classification", "Clustering", "Encryption"]);
+  const hv = pick([
+    { q: "A model scores 99% on its training data but badly on new data. What went wrong?", a: "Overfitting", o: ["Overfitting", "Overclocking", "Encryption", "Debugging"], h: "It memorised the examples instead of learning the pattern." },
+    { q: "An AI states something false, but says it with total confidence. This is called a...", a: "Hallucination", o: ["Hallucination", "Firewall", "Compile error", "Handshake"], h: "The model made something up that sounds believable." },
+  ]);
+  const ho = shuffle(hv.o);
+  const [f7, t7] = pick([[4, 3], [5, 4], [8, 6], [10, 8], [20, 15], [20, 16]]);
+  const pr = t7 * 100 / f7;
+  const x1 = rnd(1, 4), x2 = rnd(1, 4), w1 = pick([-2, -1, 1, 2, 3]), w2 = pick([-2, -1, 1, 2, 3]), b = rnd(-4, 2);
+  const out8 = Math.max(0, w1 * x1 + w2 * x2 + b);
+  const g1 = shuffle(["Gemini", "Chromebook", "Pixel", "Gmail"]), g2 = shuffle(["Training data", "Passwords", "Cookies", "Wallpapers"]), g5 = shuffle(["Random and creative", "Short and boring", "More secure", "More expensive"]);
+  const R = [
+    L(1, { t: "Name that model", d: "Which of these is a family of AI models made by Google?", type: "choice", o: g1, a: [String(g1.indexOf("Gemini") + 1)], show: "Gemini", hint: "Its name is also a zodiac sign." }),
+    L(2, { t: "How models learn", d: "A machine learning model learns patterns from examples called...", type: "choice", o: g2, a: [String(g2.indexOf("Training data") + 1)], show: "Training data", hint: "It is what the model is trained on." }),
+    L(3, { t: "Find the pattern", d: "What number comes next in the sequence?", c: terms.join(",  ") + ",  ?", a: [String(next)], show: String(next), hint: shint, m: { k: "seq", terms } }),
+    L(4, { t: "Kind of task", d: sc.q, type: "choice", o: so, a: [String(so.indexOf(sc.a) + 1)], show: sc.a, hint: "Regression predicts a number, classification picks a label, clustering finds groups." }),
+    L(5, { t: "Temperature", d: "In a language model, turning the temperature UP makes its answers more...", type: "choice", o: g5, a: [String(g5.indexOf("Random and creative") + 1)], show: "Random and creative", hint: "Low temperature is predictable. High temperature takes risks." }),
+    L(6, { t: "What went wrong?", d: hv.q, type: "choice", o: ho, a: [String(ho.indexOf(hv.a) + 1)], show: hv.a, hint: hv.h }),
+    L(7, { t: "Precision", d: `A spam filter flagged ${f7} emails as spam, and ${t7} of them really were spam. What is its precision, as a percentage?`, a: [String(pr), pr + "%"], show: pr + "%", hint: "Precision = correct flags divided by all flags.", m: { k: "prec", f: f7, t: t7 } }),
+    L(8, { t: "Boss level: one neuron", d: "A neuron computes w1*x1 + w2*x2 + b and then applies ReLU, which is max(0, value). What does it output?", c: `x = (${x1}, ${x2})    w = (${w1}, ${w2})    b = ${b}`, a: [String(out8)], show: String(out8), hint: "Multiply, add the bias, then replace any negative result with 0.", m: { k: "neuron", x1, x2, w1, w2, b } }),
+  ];
+  return R.map((r, i) => Object.assign(r, { limit: LIM[i] }));
+}
+function buildMixed() {
+  const T = [buildCyber(), buildSoftware(), buildAI()];
+  return Array.from({ length: 8 }, (_, k) => Object.assign({}, pick(T)[k]));
+}
+function buildRounds(track) { return track === "software" ? buildSoftware() : track === "ai" ? buildAI() : track === "mixed" ? buildMixed() : buildCyber(); }
+const TRACKS = {
+  cyber: { name: "CYBER", title: "CYBERSECURITY CHALLENGE", board: "game", col: "cg", desc: "ciphers, phishing, encoding and SQL injection" },
+  software: { name: "SOFTWARE", title: "SOFTWARE CHALLENGE", board: "game_sw", col: "cb", desc: "code puzzles: output, bits, loops and recursion" },
+  ai: { name: "AI", title: "AI CHALLENGE", board: "game_ai", col: "cy", desc: "models, patterns, mistakes and a tiny neuron" },
+  mixed: { name: "MIXED", title: "MIXED CHALLENGE", board: "game_mix", col: "cr", desc: "every level comes from a random track" },
+};
+const BOARD_LABEL = { quiz: "Quiz", game: "Cyber", game_sw: "Software", game_ai: "AI", game_mix: "Mixed" };
+let roundTimer = null;
+const clearRoundTimer = () => { clearInterval(roundTimer); roundTimer = null; };
+const hearts = (n) => "♥".repeat(Math.max(0, n)) + "♡".repeat(Math.max(0, LIVES - n));
+const DIFF = (l) => l <= 2 ? ["EASY", "d-easy"] : l <= 4 ? ["MEDIUM", "d-med"] : l <= 6 ? ["HARD", "d-hard"] : l === 7 ? ["EXPERT", "d-exp"] : ["BOSS", "d-boss"];
+const segs = (cur, n) => Array.from({ length: n }, (_, k) => `<span class="seg ${k < cur ? "done" : k === cur ? "now" : ""}"></span>`).join("");
+function startGame() {
+  setMode("game"); setPath("game"); clearRoundTimer(); out.innerHTML = "";
+  state.game = { stage: "pick", track: "cyber", board: "game", i: 0, score: 0, lives: LIVES, hintUsed: false, t0: 0, rounds: [] };
+  print(`<div class="gtitle">CHOOSE YOUR CHALLENGE</div>`, "g");
+  print(`<div class="mu">Each challenge has 8 levels that get harder. Tap one or type its number.</div>`, "g");
+  [["1", "cyber"], ["2", "software"], ["3", "ai"], ["4", "mixed"]].forEach(([n, k]) => { const T = TRACKS[k]; print(`<span class="opt" data-ans="${n}"><b class="${T.col}">${n}) ${T.name}</b>${esc(T.desc)}</span>`, "g"); });
+  print(`<div class="mu">Type quit to leave.</div>`, "g");
+}
+function chooseTrack(k) {
+  const g = state.game, T = TRACKS[k]; g.track = k; g.board = T.board; g.stage = "intro"; out.innerHTML = "";
+  print(`<div class="gtitle ${T.col}">${T.title}</div>`, "g");
+  print(`<div class="mu">8 levels, and they get harder. Can you clear them all?</div>`, "g");
+  print(`<div class="qcard"><div class="qt">HOW TO PLAY</div><div class="tx">You have <span class="re">${hearts(LIVES)}</span> 3 lives. A wrong answer, or running out of time, costs one.<br>Answer faster for bonus points. <span class="ye">hint</span> gives a clue but costs 5 points.<br>Type your answer and press Enter, or tap an option. <span class="ye">quit</span> leaves the game.</div></div>`, "g");
+  print(`<div class="ladder">${Array.from({ length: 8 }, (_, i) => { const [n, c] = DIFF(i + 1); return `<span class="chip ${c}">${i + 1} ${n}</span>`; }).join("")}</div>`, "g");
+  print(`<span class="btn" data-ans="start">▶ START</span><span class="mu">or type start</span>`, "g");
+}
+function hud(g, r) {
+  const [dn, dc] = DIFF(r.lvl);
+  return `<div class="hud"><span class="ye">LEVEL ${r.lvl}/${g.rounds.length}</span><span class="chip ${dc}">${dn}</span><span class="prog">${segs(g.i, g.rounds.length)}</span><span class="re">${hearts(g.lives)}</span><span class="gl">SCORE ${g.score}</span><span class="mu">worth ${r.pts}</span></div>`;
+}
+function askRound() {
+  const g = state.game, r = g.rounds[g.i], my = runToken, idx = g.i;
+  g.stage = "round"; g.hintUsed = false; g.t0 = Date.now(); busy = false;
+  out.innerHTML = "";
+  print(hud(g, r) + `<div class="tbar"><b id="tb"></b></div><div class="mu"><span id="tsec">${r.limit}</span>s left  ·  type <span class="ye">hint</span> for a clue (-5)</div>`, "g");
+  let card = `<div class="qcard"><div class="qt">${esc(r.t)}</div><div class="tx">${esc(r.d)}</div>`;
+  if (r.c) card += `<div class="code">${esc(r.c)}</div>`;
+  if (r.ref) card += `<div class="ref">${esc(r.ref)}</div>`;
+  if (r.type === "choice") card += r.o.map((t, k) => `<span class="opt" data-ans="${k + 1}"><b>${k + 1})</b>${esc(t)}</span>`).join("");
+  print(card + `</div>`, "g");
+  clearRoundTimer(); roundTimer = setInterval(() => tick(my, idx, r.limit), 100);
+}
+function tick(my, idx, limit) {
+  const g = state.game;
+  if (my !== runToken || !g || mode !== "game") { clearRoundTimer(); return; }
+  if (g.i !== idx || busy) return;
+  const left = Math.max(0, limit - (Date.now() - g.t0) / 1000), pct = left / limit * 100;
+  const tb = $("#tb"), ts = $("#tsec"); if (!tb || !ts) return;
+  tb.style.width = pct + "%"; tb.style.background = pct > 50 ? "var(--g)" : pct > 25 ? "var(--y)" : "var(--r)"; ts.textContent = Math.ceil(left);
+  if (left <= 0) { clearRoundTimer(); timeUp(my, idx); }
+}
+async function timeUp(my, idx) {
+  const g = state.game; if (my !== runToken || !g || g.i !== idx || busy || mode !== "game") return;
+  busy = true; g.lives--;
+  print(`<div class="res re">TIME'S UP!  Answer: ${esc(g.rounds[idx].show)}   ${hearts(g.lives)}</div>`, "g");
+  await afterRound(my);
+}
+async function answerGame(txt) {
+  const g = state.game;
+  if (g.stage === "pick") {
+    const m = { "1": "cyber", cyber: "cyber", "2": "software", software: "software", "3": "ai", ai: "ai", "4": "mixed", mixed: "mixed" }[txt];
+    if (m) chooseTrack(m); else print(`<span class="warn">Type 1, 2, 3 or 4 (or quit).</span>`); return;
+  }
+  if (g.stage === "intro") { if (txt === "start") { g.rounds = buildRounds(g.track); askRound(); } else print(`<span class="warn">Type start to begin, or quit to leave.</span>`); return; }
+  const r = g.rounds[g.i];
+  if (txt === "hint") { if (g.hintUsed) print(`<div class="mu">You already used the hint for this level.</div>`, "g"); else { g.hintUsed = true; print(`<div class="mu">Hint (-5 pts): ${esc(r.hint)}</div>`, "g"); } return; }
+  clearRoundTimer(); busy = true; const my = runToken;
+  const secs = (Date.now() - g.t0) / 1000;
+  if (r.a.includes(norm(txt))) {
+    const ratio = secs / r.limit, bonus = ratio <= 1 / 3 ? 5 : ratio <= 2 / 3 ? 3 : 0;
+    const gain = Math.max(0, r.pts + bonus - (g.hintUsed ? 5 : 0)); g.score += gain;
+    print(`<div class="res gl">✓ Correct!  +${gain} points  (${secs.toFixed(1)}s)</div>`, "g");
+  } else { g.lives--; print(`<div class="res re">✗ Not this time.  Answer: ${esc(r.show)}   ${hearts(g.lives)}</div>`, "g"); }
+  await afterRound(my);
+}
+async function afterRound(my) {
+  const g = state.game; await sleep(1600); if (my !== runToken) return;
+  if (g.lives <= 0) {
+    out.innerHTML = "";
+    print(`<div class="qcard"><div class="gtitle re">GAME OVER</div><div class="tx">${TRACKS[g.track].name} challenge: you reached level ${g.i + 1} of ${g.rounds.length}.</div></div>`, "g");
+    return finish(g.board, g.score, GAME_MAX);
+  }
+  g.i++;
+  if (g.i < g.rounds.length) return askRound();
+  g.score += ALL_CLEAR_BONUS; out.innerHTML = "";
+  print(`<div class="qcard"><div class="gtitle ye">★ ALL ${g.rounds.length} LEVELS CLEARED</div><div class="tx">+${ALL_CLEAR_BONUS} bonus points</div></div>`, "g");
+  finish(g.board, g.score, GAME_MAX);
+}
+
+/* ---------------- finish / name entry ---------------- */
+function finish(board, score, max) {
+  const verdict = score >= max * 0.9 ? "Legendary!" : score >= max * 0.65 ? "Nice work!" : score >= max * 0.4 ? "Good start!" : "Thanks for playing, try again!";
+  print(""); print(`<span class="ye">Final score: ${score} / ${max}</span>  <span class="gl">${verdict}</span>`);
+  print(`<span class="tx">Enter your name for the leaderboard (or press Enter to skip):</span>`);
+  state.pending = { board, score }; setMode("name"); busy = false;
+}
+async function saveName(txt) {
+  const p = state.pending, name = (txt || "").trim().slice(0, 16) || "Anonymous";
+  const rank = saveScore(p.board, name, p.score);
+  print(`<span class="gl">Saved! You are #${rank} on the ${BOARD_LABEL[p.board] || "challenge"} board.</span>`); print("");
+  scores(); onHome = false; setPath("scores"); setMode("shell");
+  print(`<span class="mu">Type </span>${cmdLink("home")}<span class="mu"> to go back to the start.</span>`);
+}
+
+/* ---------------- command router ---------------- */
+async function run(raw) {
+  const txt = raw.trim(); lastActivity = Date.now();
+  if (mode === "name") { print(`<span class="mu">name&gt;</span> ${esc(txt)}`); return saveName(txt); }
+  if (txt) print(`<span class="gl">${esc(ps.textContent)}</span> ${esc(txt)}`);
+  const c = txt.toLowerCase();
+  if (mode === "confirm") { if (c === "yes" || c === "y") { try { localStorage.removeItem(KEY); } catch (e) {} print(`<span class="gl">Leaderboards cleared.</span>`); } else print(`<span class="mu">Cancelled.</span>`); setMode("shell"); return; }
+  if (mode === "quiz" || mode === "game") {
+    if (c === "quit" || c === "exit" || c === "home") return home(false);
+    if (busy) return;
+    return mode === "quiz" ? answerQuiz(c) : answerGame(c);
+  }
+  const view = (fn) => {
+    out.innerHTML = ""; onHome = false; setPath(fn.name); renderQuick(); fn(); print("");
+    print(`<span class="mu">Type </span>${cmdLink("home")}<span class="mu"> or tap the home button to go back.</span>`);
+    out.scrollTop = 0;
+  };
+  const map = { "1": "about", "2": "join", "3": "socials", "4": "quiz", "5": "game", "6": "scores" };
+  const cmd = map[c] || c;
+  switch (cmd) {
+    case "": return;
+    case "help": case "?": case "menu": return view(help);
+    case "home": case "start": return home(false);
+    case "about": return view(about);
+    case "join": return view(join);
+    case "socials": case "social": return view(socials);
+    case "quiz": return startQuiz();
+    case "game": case "challenge": return startGame();
+    case "scores": case "leaderboard": return view(scores);
+    case "clear": case "cls": [...out.children].forEach((e) => { if (!e.classList.contains("keep")) e.remove(); }); if (!out.children.length) return home(false); out.scrollTop = 0; return;
+    case "fullscreen": case "fs": return toggleFs();
+    case "reset-scores": print(`<span class="warn">This erases ALL leaderboard scores. Type yes to confirm.</span>`); return setMode("confirm");
+    default: print(`<span class="re">command not found:</span> <span class="tx">${esc(txt)}</span> <span class="mu">(try </span>${cmdLink("help")}<span class="mu">)</span>`);
+  }
+}
+function toggleFs() { if (!document.fullscreenElement) (document.documentElement.requestFullscreen || (() => {})).call(document.documentElement); else document.exitFullscreen(); }
+
+/* ---------------- tab completion ---------------- */
+let lastTab = "";
+function autocomplete() {
+  const pool = mode === "shell" ? ["about", "join", "socials", "quiz", "game", "scores", "help", "home", "clear", "fullscreen"]
+    : mode === "game" ? ["start", "hint", "quit"] : mode === "quiz" ? ["quit"] : [];
+  const v = inp.value.toLowerCase(); if (!pool.length) return;
+  const m = pool.filter((c) => c.startsWith(v));
+  if (!m.length) return;
+  if (m.length === 1) { inp.value = m[0]; return; }
+  let pre = m[0]; for (const c of m) while (!c.startsWith(pre)) pre = pre.slice(0, -1);
+  if (pre.length > v.length) { inp.value = pre; return; }
+  if (lastTab === v) print(`<span class="mu">${m.map(esc).join("   ")}</span>`);
+  lastTab = v; setTimeout(() => { if (inp.value.toLowerCase() !== v) lastTab = ""; }, 0);
+}
+/* ---------------- events wiring ---------------- */
+$("#prompt").addEventListener("submit", (e) => { e.preventDefault(); const v = inp.value; inp.value = ""; run(v); });
+document.addEventListener("click", (e) => {
+  lastActivity = Date.now();
+  const t = e.target.closest("[data-cmd],[data-ans],#fs");
+  if (t) {
+    if (t.id === "fs") toggleFs();
+    else if (t.dataset.cmd) { if (mode === "name") { if (t.dataset.cmd === "home") home(false); return; } run(t.dataset.cmd); }
+    else if (t.dataset.ans && !busy) run(t.dataset.ans);
+  }
+  inp.focus();
+});
+document.addEventListener("keydown", (e) => {
+  lastActivity = Date.now();
+  if (e.key === "Tab") { e.preventDefault(); inp.focus(); autocomplete(); return; }
+  if (document.activeElement !== inp) inp.focus();
+});
+setInterval(() => {
+  const d = new Date(); $("#clock").textContent = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (Date.now() - lastActivity > CONFIG.idleSeconds * 1000 && (mode !== "shell" || out.children.length > 14)) { lastActivity = Date.now(); home(true); }
+}, 1000);
+
+/* ---------------- boot animation ---------------- */
+async function bootSequence() {
+  const el = $("#boot"); if (!el) return;
+  let skipped = false; const skip = () => { skipped = true; };
+  document.addEventListener("keydown", skip, { once: true }); el.addEventListener("click", skip, { once: true });
+  const log = $("#bootlog"), bar = $("#bootbar b");
+  const steps = ["Starting GDGoC ASU terminal", "Loading the quiz", "Loading the challenges", "Connecting the booth"];
+  for (let i = 0; i < steps.length && !skipped; i++) {
+    const d = document.createElement("div"); d.innerHTML = `<span class="mu">&gt; ${esc(steps[i])}...</span>`; log.appendChild(d);
+    bar.style.width = ((i + 1) / steps.length * 92) + "%";
+    await sleep(560);
+    d.innerHTML = `<span class="mu">&gt; ${esc(steps[i])}...</span> <span class="ok">ok</span>`;
+  }
+  bar.style.width = "100%";
+  if (!skipped) await sleep(380);
+  el.classList.add("hide"); await sleep(560); el.remove();
+}
+
+function selftest() {
+  let bad = 0, n = 0;
+  const un = (c) => c.split(" ").map((x) => String.fromCharCode(parseInt(x, 2))).join("");
+  const unh = (c) => c.split(" ").map((x) => String.fromCharCode(parseInt(x, 16))).join("");
+  for (let t = 0; t < 400; t++) {
+    const R = buildRounds();
+    R.forEach((r) => {
+      n++; let dec = null;
+      if (r.lvl === 2) dec = un(r.c);
+      else if (r.lvl === 3) dec = caesar(r.c.toLowerCase(), -Number(r.d.match(/by (\d+)/)[1]));
+      else if (r.lvl === 5) dec = unh(r.c);
+      else if (r.lvl === 7) dec = caesar(r.c.toLowerCase(), -13);
+      if (dec !== null && !r.a.includes(norm(dec))) { bad++; print(`<span class="re">BAD L${r.lvl}: ${esc(r.c)} -> ${esc(dec)} vs ${esc(r.a)}</span>`); }
+      if (r.type === "choice" && r.o[Number(r.a[0]) - 1] !== r.show) { bad++; print(`<span class="re">BAD choice L${r.lvl}</span>`); }
+    });
+  }
+  const indep = (m, r) => {
+    switch (m.k) {
+      case "len": return String(m.w.length);
+      case "bin": return String(parseInt(m.bin, 2));
+      case "range": { let last; for (let i = 0; i < m.n; i++) last = i; return String(last); }
+      case "mod": return String(m.a - m.b * Math.floor(m.a / m.b));
+      case "fb": { let o = ""; if (m.n % 3 === 0) o += "Fizz"; if (m.n % 5 === 0) o += "Buzz"; return o || String(m.n); }
+      case "stack": { const st = []; m.arr.forEach((x) => st.push(x)); for (let i = 0; i < m.pops; i++) st.pop(); return String(st[st.length - 1]); }
+      case "fib": { let a = 1, b = 1; for (let i = 2; i <= m.N; i++) [a, b] = [b, a + b]; return String(b); }
+      case "fact": { let f = 1; for (let i = 2; i <= m.N; i++) f *= i; return String(f); }
+      case "seq": { const t = m.terms, d = t[1] - t[0]; return String(t[2] - t[1] === d ? t[3] + d : t[3] * (t[1] / t[0])); }
+      case "prec": return String(m.t * 100 / m.f);
+      case "neuron": return String(Math.max(0, m.w1 * m.x1 + m.w2 * m.x2 + m.b));
+    }
+    return null;
+  };
+  ["cyber", "software", "ai", "mixed"].forEach((tr) => {
+    for (let t = 0; t < 300; t++) {
+      const RR = buildRounds(tr);
+      if (RR.length !== 8 || RR.some((r, i) => r.lvl !== i + 1)) { bad++; print(`<span class="re">BAD ${tr}: level order</span>`); break; }
+      RR.forEach((r) => {
+        n++;
+        if (r.m) { const v = indep(r.m); if (v !== null && !r.a.includes(norm(v))) { bad++; print(`<span class="re">BAD ${tr} L${r.lvl}: ${esc(v)} vs ${esc(r.a)}</span>`); } }
+        if (r.type === "choice" && r.o[Number(r.a[0]) - 1] !== r.show) { bad++; print(`<span class="re">BAD ${tr} choice L${r.lvl}</span>`); }
+        if (r.type === "choice" && new Set(r.o).size !== r.o.length) { bad++; print(`<span class="re">BAD ${tr} dup options L${r.lvl}</span>`); }
+        if (r.limit < 45) { bad++; print(`<span class="re">BAD ${tr} L${r.lvl}: timer ${r.limit}s too short</span>`); }
+      });
+    }
+  });
+  const qs = new Set();
+  QUIZ.forEach((it, i) => {
+    if (it.o.length !== 4 || new Set(it.o).size !== 4 || !(it.a >= 0 && it.a < 4) || !it.w || qs.has(it.q)) { bad++; print(`<span class="re">BAD quiz question #${i}: ${esc(it.q)}</span>`); }
+    qs.add(it.q);
+  });
+  for (let t = 0; t < 200; t++) { const L = pickQuiz(); if (L.length !== QUIZ_N || new Set(L.map((x) => x.q)).size !== QUIZ_N || L.some((x) => x.o[x.a] === undefined)) { bad++; print(`<span class="re">BAD pickQuiz</span>`); break; } }
+  try { localStorage.removeItem(SEEN_KEY); } catch (e) {}
+  print(`<span class="mu">quiz bank: ${QUIZ.length} questions, ${QUIZ_N} per game</span>`);
+  CONFIG.socials.concat([{ url: CONFIG.joinUrl }]).filter((x) => x.url).forEach((x) => {
+    const { N, dark } = qrMatrix(x.url), L = asciiQr(x.url); let wrong = 0;
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const ch = L[r >> 1][c], top = ch === "█" || ch === "▀", bot = ch === "█" || ch === "▄";
+      if ((r % 2 === 0 ? top : bot) !== dark(r, c)) wrong++;
+    }
+    if (wrong) { bad++; print(`<span class="re">BAD ascii QR for ${esc(x.url)}: ${wrong} cells</span>`); }
+  });
+  print(bad ? `<span class="re">selftest FAILED: ${bad}</span>` : `<span class="gl">selftest ok: ${n} rounds verified</span>`);
+}
+/* test hook: index.html#test=quiz|a|b  runs commands in order */
+async function boot() {
+  $("#barname").textContent = CONFIG.chapter;
+  if (/test=/.test(location.hash)) $("#boot") && $("#boot").remove(); else await bootSequence();
+  document.title = CONFIG.chapter + " Terminal";
+  await home(!/test=/.test(location.hash));
+  const j = location.hash.match(/joinUrl=([^&]*)/); if (j && /debug/.test(location.hash)) CONFIG.joinUrl = decodeURIComponent(j[1]);
+  const m = location.hash.match(/test=([^&]*)/);
+  if (m) for (const c of decodeURIComponent(m[1]).split("|")) {
+    await sleep(60);
+    if (c === "selftest") { selftest(); continue; }
+    if (c.startsWith("@lvl ")) { const g = state.game; if (g && g.rounds.length) { g.i = Number(c.slice(5)) - 1; askRound(); } continue; }
+    if (c.startsWith("@tab ")) { inp.value = c.slice(5); autocomplete(); print(`<span class="gl">tab -> "${esc(inp.value)}"</span>`); continue; }
+    await run(c); await sleep(1500);
+  }
+  inp.focus();
+}
+if (/debug/.test(location.hash)) window.onerror = (m, s, l) => print(`<span class="re">JS error: ${esc(m)} @${l}</span>`);
+boot();
+</script>
+</body>
+</html>
